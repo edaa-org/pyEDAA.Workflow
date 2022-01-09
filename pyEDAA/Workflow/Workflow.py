@@ -168,7 +168,7 @@ class Step:
 		pass
 
 	def _Run(self):
-		raise NotImplementedError()
+		pass
 
 	def _RunLeavingConsoleMessage(self):
 		pass
