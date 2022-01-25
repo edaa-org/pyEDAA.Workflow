@@ -32,7 +32,7 @@
 from unittest import TestCase
 
 from pyEDAA.Workflow.Steps    import PrepareEnvironment, CreateLibrary, Analyze, Elaborate, Simulate, View
-from pyEDAA.Workflow.Workflow import Workflow, Host
+from pyEDAA.Workflow.Workflow import Workflow, Host, ExchangeObject
 
 
 class Simulation(TestCase):

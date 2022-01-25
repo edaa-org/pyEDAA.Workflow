@@ -54,14 +54,13 @@ class Timer:
 
 
 @export
-class Output:
+class ExchangeObject:
 	_step: "Step"
 	_dict: Dict[str, Any]
 	_stream: Any
 	_streamObjectType: Type
 
-
-	def __init__(self, step: "PrepareEnvironment"):
+	def __init__(self, step: "Step"):
 		self._step = step
 		self._dict = {}
 
@@ -93,8 +92,8 @@ class Step:
 	_previousStep: Nullable["Step"]
 	_nextStep: Nullable["Step"]
 	_timer: "Timer"
-	_input: Nullable[Output]
-	_output: Output
+	_input: Nullable[ExchangeObject]
+	_output: ExchangeObject
 	_result: Result
 
 	def __init__(self, name: str, host: "Host", workflow: "Workflow" = None, previousStep: "Step" = None):
@@ -137,15 +136,15 @@ class Step:
 		self._nextStep = value
 
 	@property
-	def Input(self) -> Output:
+	def Input(self) -> ExchangeObject:
 		return self._input
 
 	@Input.setter
-	def Input(self, value: Output) -> None:
+	def Input(self, value: ExchangeObject) -> None:
 		self._input = value
 
 	@property
-	def Output(self) -> Output:
+	def Output(self) -> ExchangeObject:
 		return self._output
 
 	def _PrepareOutput(self):
@@ -189,8 +188,8 @@ class Workflow:
 	_host: "Host"
 	_steps: List[Step]
 	_initialStep: Step
-	_input: Nullable[Output]
-	_output: Output
+	_input: Nullable[ExchangeObject]
+	_output: ExchangeObject
 
 	def __init__(self, name: str, host: "Host", steps: List[Step] = None):
 		self._name = name
@@ -198,7 +197,7 @@ class Workflow:
 		self._steps = []
 		self._initialStep = None
 		self._input = None
-		self._output = Output
+		self._output = ExchangeObject
 
 		if steps is not None:
 			iterator = iter(steps)
@@ -215,15 +214,15 @@ class Workflow:
 				previousStep = step
 
 	@property
-	def Input(self) -> Output:
+	def Input(self) -> ExchangeObject:
 		return self._input
 
 	@Input.setter
-	def Input(self, value: Output) -> None:
+	def Input(self, value: ExchangeObject) -> None:
 		self._input = value
 
 	@property
-	def Output(self) -> Output:
+	def Output(self) -> ExchangeObject:
 		return self._output
 
 	def AppendSteps(self, steps: List[Step]) -> None:

@@ -31,7 +31,7 @@
 """Execution of EDA tools in a workflow."""
 from pyTooling.Decorators import export
 
-from pyEDAA.Workflow.Workflow import Step, Output
+from pyEDAA.Workflow.Workflow import Step, ExchangeObject
 
 
 @export
@@ -46,7 +46,7 @@ class CreateProject(Step):
 
 class PurgeDirectories(Step):
 	def _PrepareOutput(self):
-		pass
+		self._output = PrepareEnvironmentExchangeObject(self)
 
 	def _RunEnteringConsoleMessage(self):
 		pass # self.LogDebug(f"Purging temporary directory: {self.Directories.Working}")
@@ -64,7 +64,7 @@ class PurgeDirectories(Step):
 
 class CreateDirectory(Step):
 	def _PrepareOutput(self):
-		pass
+		self._output = PrepareEnvironmentExchangeObject(self)
 
 	def _RunEnteringConsoleMessage(self):
 		pass # self.LogDebug("Creating temporary directory: {0!s}".format(self.Directories.Working))
@@ -78,7 +78,7 @@ class CreateDirectory(Step):
 
 class ChangeDirectory(Step):
 	def _PrepareOutput(self):
-		pass
+		self._output = PrepareEnvironmentExchangeObject(self)
 
 	def _RunEnteringConsoleMessage(self):
 		pass # self.LogVerbose("Changing working directory to temporary directory.")
@@ -93,7 +93,7 @@ class ChangeDirectory(Step):
 
 
 @export
-class PrepareEnvironmentOutput(Output):
+class PrepareEnvironmentExchangeObject(ExchangeObject):
 	pass
 
 
@@ -111,7 +111,7 @@ class PrepareEnvironment(Step):
 		self._cdStep = ChangeDirectory(f"{name} - change directory", host, self)
 
 	def _PrepareOutput(self):
-		self._output = PrepareEnvironmentOutput(self)
+		self._output = PrepareEnvironmentExchangeObject(self)
 
 	def _RunEnteringConsoleMessage(self):
 		pass #self.LogVerbose("Creating a fresh temporary directory.")
@@ -126,66 +126,66 @@ class PrepareEnvironment(Step):
 
 
 @export
-class CreateLibraryOutput(Output):
+class CreateLibraryExchangeObject(ExchangeObject):
 	pass
 
 
 @export
 class CreateLibrary(Step):
 	def _PrepareOutput(self):
-		self._output = CreateLibraryOutput(self)
+		self._output = CreateLibraryExchangeObject(self)
 
 
 @export
-class MapLibraryOutput(Output):
+class MapLibraryExchangeObject(ExchangeObject):
 	pass
 
 
 @export
 class MapLibrary(Step):
 	def _PrepareOutput(self):
-		self._output = MapLibraryOutput(self)
+		self._output = MapLibraryExchangeObject(self)
 
 
 @export
-class AnalyzeOutput(Output):
+class AnalyzeExchangeObject(ExchangeObject):
 	pass
 
 
 @export
 class Analyze(Step):
 	def _PrepareOutput(self):
-		self._output = AnalyzeOutput(self)
+		self._output = AnalyzeExchangeObject(self)
 
 
 @export
-class ElaborateOutput(Output):
+class ElaborateExchangeObject(ExchangeObject):
 	pass
 
 
 @export
 class Elaborate(Step):
 	def _PrepareOutput(self):
-		self._output = ElaborateOutput(self)
+		self._output = ElaborateExchangeObject(self)
 
 
 @export
-class SimulateOutput(Output):
+class SimulateExchangeObject(ExchangeObject):
 	pass
 
 
 @export
 class Simulate(Step):
 	def _PrepareOutput(self):
-		self._output = SimulateOutput(self)
+		self._output = SimulateExchangeObject(self)
 
 
 @export
-class ViewOutput(Output):
+class ViewExchangeObject(ExchangeObject):
 	pass
 
 
 @export
 class View(Step):
 	def _PrepareOutput(self):
-		self._output = ViewOutput(self)
+		self._output = ViewExchangeObject(self)
