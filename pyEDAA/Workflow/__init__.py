@@ -11,7 +11,7 @@
 #                                                                                                                      #
 # License:                                                                                                             #
 # ==================================================================================================================== #
-# Copyright 2014-2021 Patrick Lehmann - Bötzingen, Germany                                                             #
+# Copyright 2014-2022 Patrick Lehmann - Bötzingen, Germany                                                             #
 #                                                                                                                      #
 # Licensed under the Apache License, Version 2.0 (the "License");                                                      #
 # you may not use this file except in compliance with the License.                                                     #
@@ -31,7 +31,7 @@
 """Execution of EDA tools in a workflow."""
 __author__ =    "Patrick Lehmann"
 __email__ =     "Paebbels@gmail.com"
-__copyright__ = "2014-2021, Patrick Lehmann"
+__copyright__ = "2014-2022, Patrick Lehmann"
 __license__ =   "Apache License, Version 2.0"
 __version__ =   "0.1.0"
 __keywords__ =  ["workflow", "management", "eda", "simulation", "synthesis"]
