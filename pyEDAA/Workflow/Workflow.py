@@ -245,11 +245,14 @@ class Workflow:
 		pass
 
 	def Run(self):
+		input = self._input
 		step = self._initialStep
 		while step is not None:
 			print(f"Executing step '{step}' ...")
+			step.Input = input
 			step.Initialize()
 			step.Run()
+			input = step.Output
 
 			step = step.NextStep
 

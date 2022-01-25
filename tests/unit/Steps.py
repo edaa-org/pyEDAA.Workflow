@@ -29,6 +29,7 @@
 # ==================================================================================================================== #
 #
 """Unt tests for ``Step`` classes."""
+from pathlib import Path
 from unittest import TestCase
 
 from pyEDAA.Workflow.Steps    import PrepareEnvironment, CreateLibrary, Analyze, Elaborate, Simulate, View
@@ -49,4 +50,12 @@ class Simulation(TestCase):
 			View("view", host, workflow)
 		]
 		workflow.AppendSteps(steps)
+
+		input = ExchangeObject(None)
+		input["WorkingDirectory"] = Path("temp")
+		input["ProjectFile"] = Path("project.xpr")
+
+		workflow.Input = input
+		workflow.Initialize()
 		workflow.Run()
+		output = workflow.Output

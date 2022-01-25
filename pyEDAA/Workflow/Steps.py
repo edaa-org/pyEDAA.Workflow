@@ -29,6 +29,9 @@
 # ==================================================================================================================== #
 #
 """Execution of EDA tools in a workflow."""
+from os import chdir
+from pathlib import Path
+
 from pyTooling.Decorators import export
 
 from pyEDAA.Workflow.Workflow import Step, ExchangeObject
@@ -52,14 +55,19 @@ class PurgeDirectories(Step):
 		pass # self.LogDebug(f"Purging temporary directory: {self.Directories.Working}")
 
 	def _Run(self):
-		for item in range(0): # self.Directories.Working.iterdir():
+		workingDirectory: Path = self._input["WorkingDirectory"]
+		for item in workingDirectory.iterdir():
 			try:
 				if item.is_dir():
-					pass # shutil.rmtree(str(item))
+					print(f"Deleting directory '{item}'")
+					# shutil.rmtree(str(item))
 				elif item.is_file():
-					item.unlink()
+					print(f"Deleting file '{item}'")
+					# item.unlink()
 			except OSError as ex:
 				raise CommonException("Error while deleting '{0!s}'.".format(item)) from ex
+		else:
+			print(f"Working directory '{workingDirectory}' is already clean.")
 
 
 class CreateDirectory(Step):
@@ -70,8 +78,10 @@ class CreateDirectory(Step):
 		pass # self.LogDebug("Creating temporary directory: {0!s}".format(self.Directories.Working))
 
 	def _Run(self):
+		workingDirectory: Path = self._input["WorkingDirectory"]
 		try:
-			self.Directories.Working.mkdir(parents=True)
+			workingDirectory.mkdir(parents=True)
+			print(f"Creating working directory '{workingDirectory}'.")
 		except OSError as ex:
 			raise CommonException(f"Error while creating '{self.Directories.Working}'.") from ex
 
@@ -85,9 +95,11 @@ class ChangeDirectory(Step):
 
 	def _Run(self):
 		"""Change working directory to temporary path 'temp/<tool>'."""
-		pass # self.LogDebug(f"cd \"{self.Directories.Working}\"")
+		# self.LogDebug(f"cd \"{self.Directories.Working}\"")
+		workingDirectory: Path = self._input["WorkingDirectory"]
+		print(f"Changing working directory to '{workingDirectory}'.")
 		try:
-			pass # chdir(str(self.Directories.Working))
+			chdir(workingDirectory)
 		except OSError as ex:
 			raise CommonException("Error while changing to '{0!s}'.".format(self.Directories.Working)) from ex
 
@@ -117,12 +129,20 @@ class PrepareEnvironment(Step):
 		pass #self.LogVerbose("Creating a fresh temporary directory.")
 
 	def _Run(self):
-		if (True): # self.Directories.Working.exists()):
-			self._purgeStep.Run()
+		if self._input["WorkingDirectory"].exists():
+			step = self._purgeStep
 		else:
-			self._createStep.Run()
+			step = self._createStep
 
+		step.Input = self._input
+		step.Initialize()
+		step.Run()
+
+		self._cdStep.Input = self._input # step.Output
+		self._cdStep.Initialize()
 		self._cdStep.Run()
+
+		self._output = self._cdStep.Output
 
 
 @export
