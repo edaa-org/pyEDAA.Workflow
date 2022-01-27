@@ -60,9 +60,12 @@ class ExchangeObject:
 	_stream: Any
 	_streamObjectType: Type
 
-	def __init__(self, step: "Step"):
+	def __init__(self, step: "Step", input: "ExchangeObject"):
 		self._step = step
 		self._dict = {}
+
+		if input is not None and input._step is not None:
+			self._dict[input._step._name] = input
 
 	def __getitem__(self, key: str) -> Any:
 		return self._dict[key]
@@ -105,8 +108,6 @@ class Step:
 		self._nextStep = None
 		self._input = None
 
-		self._PrepareOutput()
-
 	@property
 	def Name(self) -> str:
 		return self._name
@@ -147,13 +148,17 @@ class Step:
 	def Output(self) -> ExchangeObject:
 		return self._output
 
+	def Initialize(self):
+		self._PrepareOutput()
+
 	def _PrepareOutput(self):
 		raise NotImplementedError()
 
-	def Initialize(self):
-		pass
-
 	def Run(self):
+		print(f"  Executing step '{self._name}' ...")
+		for key,value in self._input._dict.items():
+			print(f"    > {(key + ':'):20} {value}")
+
 		self._RunEntering()
 		self._RunEnteringConsoleMessage()
 		self._Run()
@@ -245,10 +250,14 @@ class Workflow:
 		pass
 
 	def Run(self):
-		input = self._input
+		input: ExchangeObject = self._input
 		step = self._initialStep
+
+		print(f"Running workflow '{self._name}' ...")
+		for key,value in input._dict.items():
+			print(f"  > {(key + ':'):20} {value}")
+
 		while step is not None:
-			print(f"Executing step '{step}' ...")
 			step.Input = input
 			step.Initialize()
 			step.Run()

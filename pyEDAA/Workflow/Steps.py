@@ -31,10 +31,11 @@
 """Execution of EDA tools in a workflow."""
 from os import chdir
 from pathlib import Path
+from typing import List
 
 from pyTooling.Decorators import export
 
-from pyEDAA.Workflow.Workflow import Step, ExchangeObject
+from pyEDAA.Workflow.Workflow import Step, ExchangeObject as _ExchangeObject, Host, Workflow
 
 
 @export
@@ -47,16 +48,39 @@ class CreateProject(Step):
 	pass
 
 
+@export
 class PurgeDirectories(Step):
-	def _PrepareOutput(self):
-		self._output = PrepareEnvironmentExchangeObject(self)
+	class ExchangeObject(_ExchangeObject):
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
 
-	def _RunEnteringConsoleMessage(self):
+		def __init__(self, step: "PurgeDirectories", input: _ExchangeObject):
+			super().__init__(step, input)
+
+			self._deletedDirectoryItems = []
+
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+		@property
+		def DeletedDirectoryItems(self) -> List[Path]:
+			return self._deletedDirectoryItems
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self, self._input)
+
+	def _RunEnteringConsoleMessage(self) -> None:
 		pass # self.LogDebug(f"Purging temporary directory: {self.Directories.Working}")
 
-	def _Run(self):
+	def _Run(self) -> None:
 		workingDirectory: Path = self._input["WorkingDirectory"]
 		for item in workingDirectory.iterdir():
+			self._output._deletedDirectoryItems.append(item)
 			try:
 				if item.is_dir():
 					print(f"Deleting directory '{item}'")
@@ -67,46 +91,75 @@ class PurgeDirectories(Step):
 			except OSError as ex:
 				raise CommonException("Error while deleting '{0!s}'.".format(item)) from ex
 		else:
-			print(f"Working directory '{workingDirectory}' is already clean.")
+			print(f"    Working directory '{workingDirectory}' is already clean.")
 
 
+@export
 class CreateDirectory(Step):
-	def _PrepareOutput(self):
-		self._output = PrepareEnvironmentExchangeObject(self)
+	# class ExchangeObject(_ExchangeObject):
+	# 	_input: _ExchangeObject
+	# 	_workingDirectory: Path
+	#
+	# 	def __init__(self, step: "CreateDirectory", input: _ExchangeObject):
+	# 		super().__init__(step)
+	# 		self._input = input
+	#
+	# 	@property
+	# 	def Input(self) -> _ExchangeObject:
+	# 		return self._input
+	#
+	# 	@property
+	# 	def WorkingDirectory(self) -> Path:
+	# 		return self._workingDirectory
 
-	def _RunEnteringConsoleMessage(self):
+	def _PrepareOutput(self) -> None:
+		self._output = self._input
+
+	def _RunEnteringConsoleMessage(self) -> None:
 		pass # self.LogDebug("Creating temporary directory: {0!s}".format(self.Directories.Working))
 
-	def _Run(self):
+	def _Run(self) -> None:
 		workingDirectory: Path = self._input["WorkingDirectory"]
 		try:
 			workingDirectory.mkdir(parents=True)
-			print(f"Creating working directory '{workingDirectory}'.")
+			print(f"    Creating working directory '{workingDirectory}'.")
 		except OSError as ex:
 			raise CommonException(f"Error while creating '{self.Directories.Working}'.") from ex
 
 
+@export
 class ChangeDirectory(Step):
-	def _PrepareOutput(self):
-		self._output = PrepareEnvironmentExchangeObject(self)
+	# class ExchangeObject(_ExchangeObject):
+	# 	_input: _ExchangeObject
+	# 	_workingDirectory: Path
+	#
+	# 	def __init__(self, step: "ChangeDirectory", input: _ExchangeObject):
+	# 		super().__init__(step)
+	# 		self._input = input
+	#
+	# 	@property
+	# 	def Input(self) -> _ExchangeObject:
+	# 		return self._input
+	#
+	# 	@property
+	# 	def WorkingDirectory(self) -> Path:
+	# 		return self._workingDirectory
 
-	def _RunEnteringConsoleMessage(self):
+	def _PrepareOutput(self) -> None:
+		self._output = self._input
+
+	def _RunEnteringConsoleMessage(self) -> None:
 		pass # self.LogVerbose("Changing working directory to temporary directory.")
 
-	def _Run(self):
+	def _Run(self) -> None:
 		"""Change working directory to temporary path 'temp/<tool>'."""
 		# self.LogDebug(f"cd \"{self.Directories.Working}\"")
 		workingDirectory: Path = self._input["WorkingDirectory"]
-		print(f"Changing working directory to '{workingDirectory}'.")
+		print(f"    Changing working directory to '{workingDirectory}'.")
 		try:
 			chdir(workingDirectory)
 		except OSError as ex:
 			raise CommonException("Error while changing to '{0!s}'.".format(self.Directories.Working)) from ex
-
-
-@export
-class PrepareEnvironmentExchangeObject(ExchangeObject):
-	pass
 
 
 @export
@@ -115,6 +168,23 @@ class PrepareEnvironment(Step):
 	_createStep: CreateDirectory
 	_cdStep: ChangeDirectory
 
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
+
+		def __init__(self, step: "PrepareEnvironment", input: _ExchangeObject):
+			super().__init__(step, input)
+			self._input = input
+
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
 	def __init__(self, name: str, host: "Host", workflow: "Workflow" = None, previousStep: "Step" = None):
 		super().__init__(name, host, workflow, previousStep)
 
@@ -122,13 +192,13 @@ class PrepareEnvironment(Step):
 		self._createStep = CreateDirectory(f"{name} - create directory", host, self)
 		self._cdStep = ChangeDirectory(f"{name} - change directory", host, self)
 
-	def _PrepareOutput(self):
-		self._output = PrepareEnvironmentExchangeObject(self)
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self, self._input)
 
-	def _RunEnteringConsoleMessage(self):
+	def _RunEnteringConsoleMessage(self) -> None:
 		pass #self.LogVerbose("Creating a fresh temporary directory.")
 
-	def _Run(self):
+	def _Run(self) -> None:
 		if self._input["WorkingDirectory"].exists():
 			step = self._purgeStep
 		else:
@@ -146,66 +216,138 @@ class PrepareEnvironment(Step):
 
 
 @export
-class CreateLibraryExchangeObject(ExchangeObject):
-	pass
-
-
-@export
 class CreateLibrary(Step):
-	def _PrepareOutput(self):
-		self._output = CreateLibraryExchangeObject(self)
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
 
+		def __init__(self, step: "CreateLibrary", input: _ExchangeObject):
+			super().__init__(step, input)
+			self._input = input
 
-@export
-class MapLibraryExchangeObject(ExchangeObject):
-	pass
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self, self._input)
 
 
 @export
 class MapLibrary(Step):
-	def _PrepareOutput(self):
-		self._output = MapLibraryExchangeObject(self)
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
 
+		def __init__(self, step: "MapLibrary", input: _ExchangeObject):
+			super().__init__(step, input)
+			self._input = input
 
-@export
-class AnalyzeExchangeObject(ExchangeObject):
-	pass
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self, self._input)
 
 
 @export
 class Analyze(Step):
-	def _PrepareOutput(self):
-		self._output = AnalyzeExchangeObject(self)
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
 
+		def __init__(self, step: "Analyze", input: _ExchangeObject):
+			super().__init__(step, input)
+			self._input = input
 
-@export
-class ElaborateExchangeObject(ExchangeObject):
-	pass
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self, self._input)
 
 
 @export
 class Elaborate(Step):
-	def _PrepareOutput(self):
-		self._output = ElaborateExchangeObject(self)
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
 
+		def __init__(self, step: "Elaborate", input: _ExchangeObject):
+			super().__init__(step, input)
+			self._input = input
 
-@export
-class SimulateExchangeObject(ExchangeObject):
-	pass
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self, self._input)
 
 
 @export
 class Simulate(Step):
-	def _PrepareOutput(self):
-		self._output = SimulateExchangeObject(self)
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
 
+		def __init__(self, step: "Simulate", input: _ExchangeObject):
+			super().__init__(step, input)
+			self._input = input
 
-@export
-class ViewExchangeObject(ExchangeObject):
-	pass
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self, self._input)
 
 
 @export
 class View(Step):
-	def _PrepareOutput(self):
-		self._output = ViewExchangeObject(self)
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
+
+		def __init__(self, step: "View", input: _ExchangeObject):
+			super().__init__(step, input)
+			self._input = input
+
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self, self._input)
