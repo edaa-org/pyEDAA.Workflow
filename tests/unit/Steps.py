@@ -39,15 +39,14 @@ from pyEDAA.Workflow.Workflow import Workflow, Host, ExchangeObject as _Exchange
 
 class CreateProject(_CreateProject):
 	class ExchangeObject(_ExchangeObject):
-		_input: _ExchangeObject
 		_project: Dict[str, List[Path]]
 
 		def __init__(self, step: "CreateProject", input: _ExchangeObject):
 			super().__init__(step, input)
-			self._input = input
 			self._project = {}
 
 			self._dict["WorkingDirectory"] = input["WorkingDirectory"]
+			self._dict["Project"] = self._project
 
 		@property
 		def Input(self) -> _ExchangeObject:

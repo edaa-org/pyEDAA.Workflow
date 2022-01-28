@@ -56,22 +56,33 @@ class Timer:
 @export
 class ExchangeObject:
 	_step: "Step"
+	_input: "ExchangeObject"
 	_dict: Dict[str, Any]
 	_stream: Any
 	_streamObjectType: Type
 
 	def __init__(self, step: "Step", input: "ExchangeObject"):
 		self._step = step
+		self._input = input
 		self._dict = {}
 
-		if input is not None and input._step is not None:
-			self._dict[input._step._name] = input
+		if input is not None:
+			for key, value in input._dict.items():
+				if isinstance(value, ExchangeObject):
+					self._dict[key] = value
+
+			if input._step is not None:
+				self._dict[input._step._name] = input
 
 	def __getitem__(self, key: str) -> Any:
 		return self._dict[key]
 
 	def __setitem__(self, key: str, value: Any) -> None:
 		self._dict[key] = value
+
+	@property
+	def Input(self) -> "ExchangeObject":
+		return self._input
 
 	@property
 	def Stream(self):
@@ -155,7 +166,7 @@ class Step:
 		raise NotImplementedError()
 
 	def Run(self):
-		print(f"  Executing step '{self._name}' ...")
+		print(f"{'  '*self._host.level}Executing step '{self._name}' ...")
 		for key,value in self._input._dict.items():
 			print(f"    > {(key + ':'):20} {value}")
 
@@ -253,10 +264,11 @@ class Workflow:
 		input: ExchangeObject = self._input
 		step = self._initialStep
 
-		print(f"Running workflow '{self._name}' ...")
+		print(f"{'  '*self._host.level}Running workflow '{self._name}' ...")
 		for key,value in input._dict.items():
-			print(f"  > {(key + ':'):20} {value}")
+			print(f"{'  '*self._host.level}  > {(key + ':'):20} {value}")
 
+		self._host.level += 1
 		while step is not None:
 			step.Input = input
 			step.Initialize()
@@ -265,10 +277,12 @@ class Workflow:
 
 			step = step.NextStep
 
+		self._host.level -= 1
+
 	def __str__(self):
 		return self._name
 
 
 @export
 class Host:
-	pass
+	level = 0

@@ -60,10 +60,6 @@ class PurgeDirectories(Step):
 			self._deletedDirectoryItems = []
 
 		@property
-		def Input(self) -> _ExchangeObject:
-			return self._input
-
-		@property
 		def WorkingDirectory(self) -> Path:
 			return self._workingDirectory
 
@@ -83,30 +79,24 @@ class PurgeDirectories(Step):
 			self._output._deletedDirectoryItems.append(item)
 			try:
 				if item.is_dir():
-					print(f"Deleting directory '{item}'")
+					print(f"{'  '*self._host.level}  Deleting directory '{item}'")
 					# shutil.rmtree(str(item))
 				elif item.is_file():
-					print(f"Deleting file '{item}'")
+					print(f"{'  '*self._host.level}  Deleting file '{item}'")
 					# item.unlink()
 			except OSError as ex:
 				raise CommonException("Error while deleting '{0!s}'.".format(item)) from ex
 		else:
-			print(f"    Working directory '{workingDirectory}' is already clean.")
+			print(f"{'  '*self._host.level}  Working directory '{workingDirectory}' is already clean.")
 
 
 @export
 class CreateDirectory(Step):
 	# class ExchangeObject(_ExchangeObject):
-	# 	_input: _ExchangeObject
 	# 	_workingDirectory: Path
 	#
 	# 	def __init__(self, step: "CreateDirectory", input: _ExchangeObject):
 	# 		super().__init__(step)
-	# 		self._input = input
-	#
-	# 	@property
-	# 	def Input(self) -> _ExchangeObject:
-	# 		return self._input
 	#
 	# 	@property
 	# 	def WorkingDirectory(self) -> Path:
@@ -122,7 +112,7 @@ class CreateDirectory(Step):
 		workingDirectory: Path = self._input["WorkingDirectory"]
 		try:
 			workingDirectory.mkdir(parents=True)
-			print(f"    Creating working directory '{workingDirectory}'.")
+			print(f"{'  '*self._host.level}  Creating working directory '{workingDirectory}'.")
 		except OSError as ex:
 			raise CommonException(f"Error while creating '{self.Directories.Working}'.") from ex
 
@@ -130,16 +120,10 @@ class CreateDirectory(Step):
 @export
 class ChangeDirectory(Step):
 	# class ExchangeObject(_ExchangeObject):
-	# 	_input: _ExchangeObject
 	# 	_workingDirectory: Path
 	#
 	# 	def __init__(self, step: "ChangeDirectory", input: _ExchangeObject):
 	# 		super().__init__(step)
-	# 		self._input = input
-	#
-	# 	@property
-	# 	def Input(self) -> _ExchangeObject:
-	# 		return self._input
 	#
 	# 	@property
 	# 	def WorkingDirectory(self) -> Path:
@@ -155,7 +139,7 @@ class ChangeDirectory(Step):
 		"""Change working directory to temporary path 'temp/<tool>'."""
 		# self.LogDebug(f"cd \"{self.Directories.Working}\"")
 		workingDirectory: Path = self._input["WorkingDirectory"]
-		print(f"    Changing working directory to '{workingDirectory}'.")
+		print(f"{'  '*self._host.level}  Changing working directory to '{workingDirectory}'.")
 		try:
 			chdir(workingDirectory)
 		except OSError as ex:
@@ -169,13 +153,11 @@ class PrepareEnvironment(Step):
 	_cdStep: ChangeDirectory
 
 	class ExchangeObject(_ExchangeObject):
-		_input: _ExchangeObject
 		_workingDirectory: Path
 		_deletedDirectoryItems: List[Path]
 
 		def __init__(self, step: "PrepareEnvironment", input: _ExchangeObject):
 			super().__init__(step, input)
-			self._input = input
 
 		@property
 		def Input(self) -> _ExchangeObject:
@@ -199,6 +181,8 @@ class PrepareEnvironment(Step):
 		pass #self.LogVerbose("Creating a fresh temporary directory.")
 
 	def _Run(self) -> None:
+		self._host.level += 1
+
 		if self._input["WorkingDirectory"].exists():
 			step = self._purgeStep
 		else:
@@ -211,6 +195,8 @@ class PrepareEnvironment(Step):
 		self._cdStep.Input = self._input # step.Output
 		self._cdStep.Initialize()
 		self._cdStep.Run()
+
+		self._host.level -= 1
 
 		self._output = self._cdStep.Output
 
