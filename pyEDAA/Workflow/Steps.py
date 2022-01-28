@@ -92,16 +92,6 @@ class PurgeDirectories(Step):
 
 @export
 class CreateDirectory(Step):
-	# class ExchangeObject(_ExchangeObject):
-	# 	_workingDirectory: Path
-	#
-	# 	def __init__(self, step: "CreateDirectory", input: _ExchangeObject):
-	# 		super().__init__(step)
-	#
-	# 	@property
-	# 	def WorkingDirectory(self) -> Path:
-	# 		return self._workingDirectory
-
 	def _PrepareOutput(self) -> None:
 		self._output = self._input
 
@@ -119,16 +109,6 @@ class CreateDirectory(Step):
 
 @export
 class ChangeDirectory(Step):
-	# class ExchangeObject(_ExchangeObject):
-	# 	_workingDirectory: Path
-	#
-	# 	def __init__(self, step: "ChangeDirectory", input: _ExchangeObject):
-	# 		super().__init__(step)
-	#
-	# 	@property
-	# 	def WorkingDirectory(self) -> Path:
-	# 		return self._workingDirectory
-
 	def _PrepareOutput(self) -> None:
 		self._output = self._input
 

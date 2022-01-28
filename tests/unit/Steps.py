@@ -45,8 +45,8 @@ class CreateProject(_CreateProject):
 			super().__init__(step, input)
 			self._project = {}
 
-			self._dict["WorkingDirectory"] = input["WorkingDirectory"]
-			self._dict["Project"] = self._project
+			self["WorkingDirectory"] = input["WorkingDirectory"]
+			self["Project"] = self._project
 
 		@property
 		def Input(self) -> _ExchangeObject:

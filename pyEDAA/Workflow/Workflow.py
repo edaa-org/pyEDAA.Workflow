@@ -29,7 +29,7 @@
 # ==================================================================================================================== #
 #
 """Execution of EDA tools in a workflow."""
-from typing import List, Optional as Nullable, Dict, Any, Type
+from typing import List, Optional as Nullable, Dict, Any, Type, TypeVar, Generic
 
 from pyTooling.Decorators import export
 
@@ -53,11 +53,41 @@ class Timer:
 		return None
 
 
+T = TypeVar("T")
+
+@export
+class Parameter(Generic[T]):
+	_obj: T
+
+	def __init__(self, obj: T):
+		self._obj = obj
+
+	@property
+	def Value(self) -> T:
+		return self._obj
+
+	def __str__(self) -> str:
+		return str(self._obj)
+
+	def __repr__(self) -> str:
+		return repr(self._obj)
+
+
+@export
+class GlobalParameter(Parameter):
+	pass
+
+
+@export
+class CopyParameter(Parameter):
+	pass
+
+
 @export
 class ExchangeObject:
 	_step: "Step"
 	_input: "ExchangeObject"
-	_dict: Dict[str, Any]
+	_dict: Dict[str, Parameter]
 	_stream: Any
 	_streamObjectType: Type
 
@@ -68,17 +98,24 @@ class ExchangeObject:
 
 		if input is not None:
 			for key, value in input._dict.items():
-				if isinstance(value, ExchangeObject):
+				if isinstance(value, GlobalParameter):
+					self._dict[key] = value
+				elif isinstance(value, CopyParameter):
+					self._dict[key] = CopyParameter(value.Value)
+				elif isinstance(value, ExchangeObject):
 					self._dict[key] = value
 
 			if input._step is not None:
 				self._dict[input._step._name] = input
 
 	def __getitem__(self, key: str) -> Any:
-		return self._dict[key]
+		return self._dict[key].Value
 
 	def __setitem__(self, key: str, value: Any) -> None:
-		self._dict[key] = value
+		if isinstance(value, Parameter):
+			self._dict[key] = value
+		else:
+			self._dict[key] = GlobalParameter(value)
 
 	@property
 	def Input(self) -> "ExchangeObject":
