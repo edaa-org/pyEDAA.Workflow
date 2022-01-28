@@ -73,6 +73,11 @@ class CreateProject(_CreateProject):
 			Path("file11.vhdl"),
 			Path("file12.vhdl")
 		]
+		print(f"{'  ' * self._host.level}  - Project structure:")
+		for lib, files in project.items():
+			print(f"{'  ' * self._host.level}      {lib}")
+			for file in files:
+				print(f"{'  ' * self._host.level}        {file}")
 
 
 class Simulation(TestCase):

@@ -205,13 +205,18 @@ class Step:
 	def Run(self):
 		print(f"{'  '*self._host.level}Executing step '{self._name}' ...")
 		for key,value in self._input._dict.items():
-			print(f"    > {(key + ':'):20} {value}")
+			print(f"{'  '*self._host.level}  > {(key + ':'):20} {value}")
+		print(f"{'  ' * self._host.level}  {'-'*120}")
 
 		self._RunEntering()
 		self._RunEnteringConsoleMessage()
 		self._Run()
 		self._RunLeavingConsoleMessage()
 		self._RunLeaving()
+
+		print(f"{'  ' * self._host.level}  {'-'*120}")
+		for key,value in self._output._dict.items():
+			print(f"{'  '*self._host.level}  < {(key + ':'):20} {value}")
 
 	def _RunEntering(self):
 		self._timer.Start()
@@ -304,6 +309,7 @@ class Workflow:
 		print(f"{'  '*self._host.level}Running workflow '{self._name}' ...")
 		for key,value in input._dict.items():
 			print(f"{'  '*self._host.level}  > {(key + ':'):20} {value}")
+		print(f"{'  ' * self._host.level}  {'=' * 120}")
 
 		self._host.level += 1
 		while step is not None:
@@ -315,6 +321,11 @@ class Workflow:
 			step = step.NextStep
 
 		self._host.level -= 1
+		self._output = input
+
+		print(f"{'  ' * self._host.level}  {'=' * 120}")
+		for key,value in input._dict.items():
+			print(f"{'  '*self._host.level}  < {(key + ':'):20} {value}")
 
 	def __str__(self):
 		return self._name

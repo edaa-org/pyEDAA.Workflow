@@ -79,15 +79,15 @@ class PurgeDirectories(Step):
 			self._output._deletedDirectoryItems.append(item)
 			try:
 				if item.is_dir():
-					print(f"{'  '*self._host.level}  Deleting directory '{item}'")
+					print(f"{'  '*self._host.level}  - Deleting directory '{item}'")
 					# shutil.rmtree(str(item))
 				elif item.is_file():
-					print(f"{'  '*self._host.level}  Deleting file '{item}'")
+					print(f"{'  '*self._host.level}  - Deleting file '{item}'")
 					# item.unlink()
 			except OSError as ex:
 				raise CommonException("Error while deleting '{0!s}'.".format(item)) from ex
 		else:
-			print(f"{'  '*self._host.level}  Working directory '{workingDirectory}' is already clean.")
+			print(f"{'  '*self._host.level}  - Working directory '{workingDirectory}' is already clean.")
 
 
 @export
@@ -102,7 +102,7 @@ class CreateDirectory(Step):
 		workingDirectory: Path = self._input["WorkingDirectory"]
 		try:
 			workingDirectory.mkdir(parents=True)
-			print(f"{'  '*self._host.level}  Creating working directory '{workingDirectory}'.")
+			print(f"{'  '*self._host.level}  - Creating working directory '{workingDirectory}'.")
 		except OSError as ex:
 			raise CommonException(f"Error while creating '{self.Directories.Working}'.") from ex
 
@@ -119,7 +119,7 @@ class ChangeDirectory(Step):
 		"""Change working directory to temporary path 'temp/<tool>'."""
 		# self.LogDebug(f"cd \"{self.Directories.Working}\"")
 		workingDirectory: Path = self._input["WorkingDirectory"]
-		print(f"{'  '*self._host.level}  Changing working directory to '{workingDirectory}'.")
+		print(f"{'  '*self._host.level}  - Changing working directory to '{workingDirectory}'.")
 		try:
 			chdir(workingDirectory)
 		except OSError as ex:
@@ -172,7 +172,7 @@ class PrepareEnvironment(Step):
 		step.Initialize()
 		step.Run()
 
-		self._cdStep.Input = self._input # step.Output
+		self._cdStep.Input = self._output # step.Output
 		self._cdStep.Initialize()
 		self._cdStep.Run()
 
@@ -203,6 +203,9 @@ class CreateLibrary(Step):
 	def _PrepareOutput(self) -> None:
 		self._output = self.ExchangeObject(self, self._input)
 
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Creating Library: '??????'")
+
 
 @export
 class MapLibrary(Step):
@@ -226,6 +229,8 @@ class MapLibrary(Step):
 	def _PrepareOutput(self) -> None:
 		self._output = self.ExchangeObject(self, self._input)
 
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Mapping Library: '??????'")
 
 @export
 class Analyze(Step):
@@ -249,6 +254,8 @@ class Analyze(Step):
 	def _PrepareOutput(self) -> None:
 		self._output = self.ExchangeObject(self, self._input)
 
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Analyzing file: '??????'")
 
 @export
 class Elaborate(Step):
@@ -272,6 +279,8 @@ class Elaborate(Step):
 	def _PrepareOutput(self) -> None:
 		self._output = self.ExchangeObject(self, self._input)
 
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Elaborating top-level: '??????'")
 
 @export
 class Simulate(Step):
@@ -295,6 +304,9 @@ class Simulate(Step):
 	def _PrepareOutput(self) -> None:
 		self._output = self.ExchangeObject(self, self._input)
 
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Simulating top-level: '??????'")
+
 
 @export
 class View(Step):
@@ -317,3 +329,6 @@ class View(Step):
 
 	def _PrepareOutput(self) -> None:
 		self._output = self.ExchangeObject(self, self._input)
+
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Viewing waveform: '??????'")
