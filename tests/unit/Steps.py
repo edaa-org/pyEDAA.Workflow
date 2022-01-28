@@ -29,21 +29,30 @@
 # ==================================================================================================================== #
 #
 """Unt tests for ``Step`` classes."""
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict
 from unittest import TestCase
+
+import colorama
 
 from pyEDAA.Workflow.Steps    import CreateProject as _CreateProject, PrepareEnvironment, CreateLibrary, Analyze, Elaborate, Simulate, View
 from pyEDAA.Workflow.Workflow import Workflow, Host, ExchangeObject as _ExchangeObject
 
 
+@dataclass
+class Project:
+	Name: str
+	Libraries: Dict[str, List[Path]]
+
+
 class CreateProject(_CreateProject):
 	class ExchangeObject(_ExchangeObject):
-		_project: Dict[str, List[Path]]
+		_project: Project
 
-		def __init__(self, step: "CreateProject", input: _ExchangeObject):
-			super().__init__(step, input)
-			self._project = {}
+		def __init__(self, name: str, step: "CreateProject", input: _ExchangeObject):
+			super().__init__(name, step, input)
+			self._project = Project("StopWatch", {})
 
 			self["WorkingDirectory"] = input["WorkingDirectory"]
 			self["Project"] = self._project
@@ -53,28 +62,31 @@ class CreateProject(_CreateProject):
 			return self._input
 
 		@property
-		def Project(self) -> Dict[str, List[Path]]:
+		def Project(self) -> Project:
 			return self._project
 
 	def _PrepareOutput(self) -> None:
-		self._output = self.ExchangeObject(self, self._input)
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
 
 	def _RunEnteringConsoleMessage(self) -> None:
 		pass # self.LogDebug(f"Purging temporary directory: {self.Directories.Working}")
 
 	def _Run(self) -> None:
-		project: Dict[str, List[Path]] = self._output._project
-		project["lib1"] = [
+		if "Project" not in self._output:
+			raise Exception()
+
+		project: Project = self._output["Project"]
+		project.Libraries["lib1"] = [
 			Path("file1.vhdl"),
 			Path("file2.vhdl"),
 			Path("file3.vhdl")
 		]
-		project["lib2"] = [
+		project.Libraries["lib2"] = [
 			Path("file11.vhdl"),
 			Path("file12.vhdl")
 		]
-		print(f"{'  ' * self._host.level}  - Project structure:")
-		for lib, files in project.items():
+		print(f"{'  ' * self._host.level}  - Project: {project.Name}")
+		for lib, files in project.Libraries.items():
 			print(f"{'  ' * self._host.level}      {lib}")
 			for file in files:
 				print(f"{'  ' * self._host.level}        {file}")
@@ -84,21 +96,23 @@ class Simulation(TestCase):
 	def test_Steps(self):
 		print()
 
+		colorama.init()
+
 		host = Host()
 		workflow = Workflow("test flow", host)
 
 		steps = [
-			CreateProject("generate project", host, workflow),
-			PrepareEnvironment("prepare environment", host, workflow),
-			CreateLibrary("create library", host, workflow),
-			Analyze("analyze", host, workflow),
-			Elaborate("elaborate", host, workflow),
-			Simulate("simulate", host, workflow),
-			View("view", host, workflow)
+			CreateProject("GenerateProject", "generate project", host, workflow),
+			PrepareEnvironment("PrepareEnvironment", "prepare environment", host, workflow),
+			CreateLibrary("CreateLibrary", "create library", host, workflow),
+			Analyze("Analyze", "analyze", host, workflow),
+			Elaborate("Elaborate", "elaborate", host, workflow),
+			Simulate("Simulate", "simulate", host, workflow),
+			View("View", "view", host, workflow)
 		]
 		workflow.AppendSteps(steps)
 
-		input = _ExchangeObject(None, None)
+		input = _ExchangeObject("Initial", None, None)
 		input["WorkingDirectory"] = Path("temp")
 		input["ProjectFile"] = Path("project.xpr")
 

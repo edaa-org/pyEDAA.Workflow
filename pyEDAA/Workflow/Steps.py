@@ -35,7 +35,7 @@ from typing import List
 
 from pyTooling.Decorators import export
 
-from pyEDAA.Workflow.Workflow import Step, ExchangeObject as _ExchangeObject, Host, Workflow
+from pyEDAA.Workflow.Workflow import Step, ExchangeObject as _ExchangeObject, Host, Workflow, LocalParameter
 
 
 @export
@@ -54,10 +54,11 @@ class PurgeDirectories(Step):
 		_workingDirectory: Path
 		_deletedDirectoryItems: List[Path]
 
-		def __init__(self, step: "PurgeDirectories", input: _ExchangeObject):
-			super().__init__(step, input)
+		def __init__(self, name: str, step: "PurgeDirectories", input: _ExchangeObject):
+			super().__init__(name, step, input)
 
 			self._deletedDirectoryItems = []
+			self["DeletedDirectoryItems"] = LocalParameter(self._deletedDirectoryItems)
 
 		@property
 		def WorkingDirectory(self) -> Path:
@@ -68,7 +69,7 @@ class PurgeDirectories(Step):
 			return self._deletedDirectoryItems
 
 	def _PrepareOutput(self) -> None:
-		self._output = self.ExchangeObject(self, self._input)
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
 
 	def _RunEnteringConsoleMessage(self) -> None:
 		pass # self.LogDebug(f"Purging temporary directory: {self.Directories.Working}")
@@ -136,8 +137,8 @@ class PrepareEnvironment(Step):
 		_workingDirectory: Path
 		_deletedDirectoryItems: List[Path]
 
-		def __init__(self, step: "PrepareEnvironment", input: _ExchangeObject):
-			super().__init__(step, input)
+		def __init__(self, name: str, step: "PrepareEnvironment", input: _ExchangeObject):
+			super().__init__(name, step, input)
 
 		@property
 		def Input(self) -> _ExchangeObject:
@@ -147,15 +148,15 @@ class PrepareEnvironment(Step):
 		def WorkingDirectory(self) -> Path:
 			return self._workingDirectory
 
-	def __init__(self, name: str, host: "Host", workflow: "Workflow" = None, previousStep: "Step" = None):
-		super().__init__(name, host, workflow, previousStep)
+	def __init__(self, name: str, description: str, host: "Host", workflow: "Workflow" = None, previousStep: "Step" = None):
+		super().__init__(name, description, host, workflow, previousStep)
 
-		self._purgeStep = PurgeDirectories(f"{name} - purge directory", host, self)
-		self._createStep = CreateDirectory(f"{name} - create directory", host, self)
-		self._cdStep = ChangeDirectory(f"{name} - change directory", host, self)
+		self._purgeStep = PurgeDirectories("PurgeDirectory", f"{name} - purge directory", host, self)
+		self._createStep = CreateDirectory("CreateDirectory", f"{name} - create directory", host, self)
+		self._cdStep = ChangeDirectory("ChangeDirectory", f"{name} - change directory", host, self)
 
 	def _PrepareOutput(self) -> None:
-		self._output = self.ExchangeObject(self, self._input)
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
 
 	def _RunEnteringConsoleMessage(self) -> None:
 		pass #self.LogVerbose("Creating a fresh temporary directory.")
@@ -188,8 +189,8 @@ class CreateLibrary(Step):
 		_workingDirectory: Path
 		_deletedDirectoryItems: List[Path]
 
-		def __init__(self, step: "CreateLibrary", input: _ExchangeObject):
-			super().__init__(step, input)
+		def __init__(self, name: str, step: "CreateLibrary", input: _ExchangeObject):
+			super().__init__(name, step, input)
 			self._input = input
 
 		@property
@@ -201,7 +202,7 @@ class CreateLibrary(Step):
 			return self._workingDirectory
 
 	def _PrepareOutput(self) -> None:
-		self._output = self.ExchangeObject(self, self._input)
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
 
 	def _Run(self):
 		print(f"{'  ' * self._host.level}  - Creating Library: '??????'")
@@ -214,8 +215,8 @@ class MapLibrary(Step):
 		_workingDirectory: Path
 		_deletedDirectoryItems: List[Path]
 
-		def __init__(self, step: "MapLibrary", input: _ExchangeObject):
-			super().__init__(step, input)
+		def __init__(self, name: str, step: "MapLibrary", input: _ExchangeObject):
+			super().__init__(name, step, input)
 			self._input = input
 
 		@property
@@ -227,7 +228,7 @@ class MapLibrary(Step):
 			return self._workingDirectory
 
 	def _PrepareOutput(self) -> None:
-		self._output = self.ExchangeObject(self, self._input)
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
 
 	def _Run(self):
 		print(f"{'  ' * self._host.level}  - Mapping Library: '??????'")
@@ -239,8 +240,8 @@ class Analyze(Step):
 		_workingDirectory: Path
 		_deletedDirectoryItems: List[Path]
 
-		def __init__(self, step: "Analyze", input: _ExchangeObject):
-			super().__init__(step, input)
+		def __init__(self, name: str, step: "Analyze", input: _ExchangeObject):
+			super().__init__(name, step, input)
 			self._input = input
 
 		@property
@@ -252,7 +253,7 @@ class Analyze(Step):
 			return self._workingDirectory
 
 	def _PrepareOutput(self) -> None:
-		self._output = self.ExchangeObject(self, self._input)
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
 
 	def _Run(self):
 		print(f"{'  ' * self._host.level}  - Analyzing file: '??????'")
@@ -264,8 +265,8 @@ class Elaborate(Step):
 		_workingDirectory: Path
 		_deletedDirectoryItems: List[Path]
 
-		def __init__(self, step: "Elaborate", input: _ExchangeObject):
-			super().__init__(step, input)
+		def __init__(self, name: str, step: "Elaborate", input: _ExchangeObject):
+			super().__init__(name, step, input)
 			self._input = input
 
 		@property
@@ -277,7 +278,7 @@ class Elaborate(Step):
 			return self._workingDirectory
 
 	def _PrepareOutput(self) -> None:
-		self._output = self.ExchangeObject(self, self._input)
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
 
 	def _Run(self):
 		print(f"{'  ' * self._host.level}  - Elaborating top-level: '??????'")
@@ -289,8 +290,8 @@ class Simulate(Step):
 		_workingDirectory: Path
 		_deletedDirectoryItems: List[Path]
 
-		def __init__(self, step: "Simulate", input: _ExchangeObject):
-			super().__init__(step, input)
+		def __init__(self, name: str, step: "Simulate", input: _ExchangeObject):
+			super().__init__(name, step, input)
 			self._input = input
 
 		@property
@@ -302,7 +303,7 @@ class Simulate(Step):
 			return self._workingDirectory
 
 	def _PrepareOutput(self) -> None:
-		self._output = self.ExchangeObject(self, self._input)
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
 
 	def _Run(self):
 		print(f"{'  ' * self._host.level}  - Simulating top-level: '??????'")
@@ -315,8 +316,8 @@ class View(Step):
 		_workingDirectory: Path
 		_deletedDirectoryItems: List[Path]
 
-		def __init__(self, step: "View", input: _ExchangeObject):
-			super().__init__(step, input)
+		def __init__(self, name: str, step: "View", input: _ExchangeObject):
+			super().__init__(name, step, input)
 			self._input = input
 
 		@property
@@ -328,7 +329,7 @@ class View(Step):
 			return self._workingDirectory
 
 	def _PrepareOutput(self) -> None:
-		self._output = self.ExchangeObject(self, self._input)
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
 
 	def _Run(self):
 		print(f"{'  ' * self._host.level}  - Viewing waveform: '??????'")

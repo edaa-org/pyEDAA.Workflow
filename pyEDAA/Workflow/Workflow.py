@@ -29,8 +29,9 @@
 # ==================================================================================================================== #
 #
 """Execution of EDA tools in a workflow."""
-from typing import List, Optional as Nullable, Dict, Any, Type, TypeVar, Generic
+from typing import List, Optional as Nullable, Dict, Any, Type, TypeVar, Generic, Union, Iterator, Tuple
 
+import colorama
 from pyTooling.Decorators import export
 
 
@@ -79,34 +80,54 @@ class GlobalParameter(Parameter):
 
 
 @export
+class LocalParameter(Parameter):
+	pass
+
+
+@export
 class CopyParameter(Parameter):
 	pass
 
 
 @export
 class ExchangeObject:
+	_name: str
 	_step: "Step"
 	_input: "ExchangeObject"
-	_dict: Dict[str, Parameter]
+	_dict: Dict[str, Union[Parameter, "ExchangeObject"]]
 	_stream: Any
 	_streamObjectType: Type
 
-	def __init__(self, step: "Step", input: "ExchangeObject"):
+	def __init__(self, name: str, step: "Step", input: "ExchangeObject"):
+		self._name = name
 		self._step = step
 		self._input = input
 		self._dict = {}
 
+		if step is None:
+			self._dict["PreviousStep"] = None
+
 		if input is not None:
-			for key, value in input._dict.items():
-				if isinstance(value, GlobalParameter):
+			for key, value in input:
+				if isinstance(value, GlobalParameter) or value is None:
 					self._dict[key] = value
 				elif isinstance(value, CopyParameter):
 					self._dict[key] = CopyParameter(value.Value)
+				elif isinstance(value, LocalParameter):
+					print(f"skipped '{key}'")
 				elif isinstance(value, ExchangeObject):
 					self._dict[key] = value
+				else:
+					raise Exception()
 
 			if input._step is not None:
 				self._dict[input._step._name] = input
+
+	def __iter__(self) -> Iterator[Tuple[str, Union[Parameter, "ExchangeObject"]]]:
+		return iter(self._dict.items())
+
+	def __contains__(self, key: str) -> bool:
+		return key in self._dict
 
 	def __getitem__(self, key: str) -> Any:
 		return self._dict[key].Value
@@ -116,6 +137,10 @@ class ExchangeObject:
 			self._dict[key] = value
 		else:
 			self._dict[key] = GlobalParameter(value)
+
+	@property
+	def Name(self) -> str:
+		return self._name
 
 	@property
 	def Input(self) -> "ExchangeObject":
@@ -129,6 +154,9 @@ class ExchangeObject:
 	def StreamObject(self) -> Type:
 		return self._streamObjectType
 
+	def __str__(self) -> str:
+		return self._name
+
 
 @export
 class Result:
@@ -138,6 +166,7 @@ class Result:
 @export
 class Step:
 	_name: str
+	_description: str
 	_host: "Host"
 	_workflow: "Workflow"
 	_previousStep: Nullable["Step"]
@@ -147,8 +176,9 @@ class Step:
 	_output: ExchangeObject
 	_result: Result
 
-	def __init__(self, name: str, host: "Host", workflow: "Workflow" = None, previousStep: "Step" = None):
+	def __init__(self, name: str, description: str, host: "Host", workflow: "Workflow" = None, previousStep: "Step" = None):
 		self._name = name
+		self._description = description
 		self._host = host
 		self._workflow = workflow
 		self._timer = Timer()
@@ -159,6 +189,10 @@ class Step:
 	@property
 	def Name(self) -> str:
 		return self._name
+
+	@property
+	def Description(self) -> str:
+		return self._description
 
 	@property
 	def Workflow(self) -> Nullable["Workflow"]:
@@ -203,9 +237,9 @@ class Step:
 		raise NotImplementedError()
 
 	def Run(self):
-		print(f"{'  '*self._host.level}Executing step '{self._name}' ...")
-		for key,value in self._input._dict.items():
-			print(f"{'  '*self._host.level}  > {(key + ':'):20} {value}")
+		print(f"{'  '*self._host.level}{colorama.Fore.LIGHTCYAN_EX}Executing step '{self._name}' ...{colorama.Fore.RESET}")
+		for key,value in self._input:
+			print(f"{'  '*self._host.level}  > {(key + ':'):24} {value}")
 		print(f"{'  ' * self._host.level}  {'-'*120}")
 
 		self._RunEntering()
@@ -215,8 +249,8 @@ class Step:
 		self._RunLeaving()
 
 		print(f"{'  ' * self._host.level}  {'-'*120}")
-		for key,value in self._output._dict.items():
-			print(f"{'  '*self._host.level}  < {(key + ':'):20} {value}")
+		for key,value in self._output:
+			print(f"{'  '*self._host.level}  < {(key + ':'):24} {value}")
 
 	def _RunEntering(self):
 		self._timer.Start()
@@ -236,7 +270,7 @@ class Step:
 	def _AssembleOutput(self):
 		pass
 
-	def __str__(self):
+	def __str__(self) -> str:
 		return self._name
 
 
@@ -306,9 +340,9 @@ class Workflow:
 		input: ExchangeObject = self._input
 		step = self._initialStep
 
-		print(f"{'  '*self._host.level}Running workflow '{self._name}' ...")
-		for key,value in input._dict.items():
-			print(f"{'  '*self._host.level}  > {(key + ':'):20} {value}")
+		print(f"{'  '*self._host.level}{colorama.Fore.CYAN}Running workflow '{self._name}' ...{colorama.Fore.RESET}")
+		for key,value in input:
+			print(f"{'  '*self._host.level}  > {(key + ':'):24} {value}")
 		print(f"{'  ' * self._host.level}  {'=' * 120}")
 
 		self._host.level += 1
@@ -316,16 +350,20 @@ class Workflow:
 			step.Input = input
 			step.Initialize()
 			step.Run()
-			input = step.Output
+
+			output = step.Output
+			output["PreviousStep"] = input
+			output[step.Name] = input
 
 			step = step.NextStep
+			input = output
 
 		self._host.level -= 1
 		self._output = input
 
 		print(f"{'  ' * self._host.level}  {'=' * 120}")
-		for key,value in input._dict.items():
-			print(f"{'  '*self._host.level}  < {(key + ':'):20} {value}")
+		for key,value in input:
+			print(f"{'  '*self._host.level}  < {(key + ':'):24} {value}")
 
 	def __str__(self):
 		return self._name
