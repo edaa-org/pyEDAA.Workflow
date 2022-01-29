@@ -29,6 +29,7 @@
 # ==================================================================================================================== #
 #
 """Execution of EDA tools in a workflow."""
+from enum import Enum
 from typing import List, Optional as Nullable, Dict, Any, Type, TypeVar, Generic, Union, Iterator, Tuple
 
 import colorama
@@ -94,18 +95,19 @@ class ExchangeObject:
 	_name: str
 	_step: "Step"
 	_input: "ExchangeObject"
-	_dict: Dict[str, Union[Parameter, "ExchangeObject"]]
+	_dict: Dict[str, Union[Parameter, "ExchangeObject", None]]
 	_stream: Any
 	_streamObjectType: Type
 
-	def __init__(self, name: str, step: "Step", input: "ExchangeObject"):
+	def __init__(self, name: str, step: Nullable["Step"], input: Nullable["ExchangeObject"]):
 		self._name = name
 		self._step = step
 		self._input = input
 		self._dict = {}
 
 		if step is None:
-			self._dict["PreviousStep"] = None
+			self._dict["Previous_Step"] = None
+			self._dict["Previous_Input"] = None
 
 		if input is not None:
 			for key, value in input:
@@ -114,14 +116,14 @@ class ExchangeObject:
 				elif isinstance(value, CopyParameter):
 					self._dict[key] = CopyParameter(value.Value)
 				elif isinstance(value, LocalParameter):
-					print(f"skipped '{key}'")
+					pass # print(f"skipped '{key}'")
 				elif isinstance(value, ExchangeObject):
 					self._dict[key] = value
 				else:
 					raise Exception()
 
-			if input._step is not None:
-				self._dict[input._step._name] = input
+			# if input._step is not None:
+			# 	self._dict[input._step._name] = input
 
 	def __iter__(self) -> Iterator[Tuple[str, Union[Parameter, "ExchangeObject"]]]:
 		return iter(self._dict.items())
@@ -159,32 +161,28 @@ class ExchangeObject:
 
 
 @export
-class Result:
-	pass
+class Result(Enum):
+	Unknown = 0
 
 
 @export
-class Step:
+class Base:
 	_name: str
 	_description: str
 	_host: "Host"
-	_workflow: "Workflow"
-	_previousStep: Nullable["Step"]
-	_nextStep: Nullable["Step"]
 	_timer: "Timer"
 	_input: Nullable[ExchangeObject]
-	_output: ExchangeObject
+	_output: Nullable[ExchangeObject]
 	_result: Result
 
-	def __init__(self, name: str, description: str, host: "Host", workflow: "Workflow" = None, previousStep: "Step" = None):
+	def __init__(self, name: str, description: str, host: "Host"):
 		self._name = name
 		self._description = description
 		self._host = host
-		self._workflow = workflow
 		self._timer = Timer()
-		self._previousStep = previousStep
-		self._nextStep = None
 		self._input = None
+		self._output = None
+		self._result = Result.Unknown
 
 	@property
 	def Name(self) -> str:
@@ -193,6 +191,38 @@ class Step:
 	@property
 	def Description(self) -> str:
 		return self._description
+
+	@property
+	def Input(self) -> ExchangeObject:
+		return self._input
+
+	@Input.setter
+	def Input(self, value: ExchangeObject) -> None:
+		self._input = value
+
+	@property
+	def Output(self) -> ExchangeObject:
+		return self._output
+
+	def Initialize(self):
+		self._PrepareOutput()
+
+	def _PrepareOutput(self):
+		raise NotImplementedError()
+
+
+@export
+class Step(Base):
+	_workflow: "Workflow"
+	_previousStep: Nullable["Step"]
+	_nextStep: Nullable["Step"]
+
+	def __init__(self, name: str, description: str, host: "Host", workflow: "Workflow" = None, previousStep: "Step" = None):
+		super().__init__(name, description, host)
+
+		self._workflow = workflow
+		self._previousStep = previousStep
+		self._nextStep = None
 
 	@property
 	def Workflow(self) -> Nullable["Workflow"]:
@@ -217,24 +247,6 @@ class Step:
 	@NextStep.setter
 	def NextStep(self, value: "Step") -> None:
 		self._nextStep = value
-
-	@property
-	def Input(self) -> ExchangeObject:
-		return self._input
-
-	@Input.setter
-	def Input(self, value: ExchangeObject) -> None:
-		self._input = value
-
-	@property
-	def Output(self) -> ExchangeObject:
-		return self._output
-
-	def Initialize(self):
-		self._PrepareOutput()
-
-	def _PrepareOutput(self):
-		raise NotImplementedError()
 
 	def Run(self):
 		print(f"{'  '*self._host.level}{colorama.Fore.LIGHTCYAN_EX}Executing step '{self._name}' ...{colorama.Fore.RESET}")
@@ -275,21 +287,15 @@ class Step:
 
 
 @export
-class Workflow:
-	_name: str
-	_host: "Host"
+class Workflow(Base):
 	_steps: List[Step]
 	_initialStep: Step
-	_input: Nullable[ExchangeObject]
-	_output: ExchangeObject
 
-	def __init__(self, name: str, host: "Host", steps: List[Step] = None):
-		self._name = name
-		self._host = host
+	def __init__(self, name: str, description: str, host: "Host", steps: List[Step] = None):
+		super().__init__(name, description, host)
+
 		self._steps = []
 		self._initialStep = None
-		self._input = None
-		self._output = ExchangeObject
 
 		if steps is not None:
 			iterator = iter(steps)
@@ -304,18 +310,6 @@ class Workflow:
 				step.PreviousStep = previousStep
 				self._steps.append(step)
 				previousStep = step
-
-	@property
-	def Input(self) -> ExchangeObject:
-		return self._input
-
-	@Input.setter
-	def Input(self, value: ExchangeObject) -> None:
-		self._input = value
-
-	@property
-	def Output(self) -> ExchangeObject:
-		return self._output
 
 	def AppendSteps(self, steps: List[Step]) -> None:
 		iterator = iter(steps)
@@ -352,8 +346,10 @@ class Workflow:
 			step.Run()
 
 			output = step.Output
-			output["PreviousStep"] = input
-			output[step.Name] = input
+			output["Previous_Step"] = step
+			output["Previous_Input"] = input
+			output["Previous_Output"] = output
+			output[f"step_{step.Name}"] = output
 
 			step = step.NextStep
 			input = output

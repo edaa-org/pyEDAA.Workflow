@@ -99,7 +99,7 @@ class Simulation(TestCase):
 		colorama.init()
 
 		host = Host()
-		workflow = Workflow("test flow", host)
+		workflow = Workflow("MainFlow", "test flow", host)
 
 		steps = [
 			CreateProject("GenerateProject", "generate project", host, workflow),

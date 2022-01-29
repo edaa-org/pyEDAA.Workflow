@@ -76,8 +76,9 @@ class PurgeDirectories(Step):
 
 	def _Run(self) -> None:
 		workingDirectory: Path = self._input["WorkingDirectory"]
+		deletedDirectoryItems = self._output["DeletedDirectoryItems"]
 		for item in workingDirectory.iterdir():
-			self._output._deletedDirectoryItems.append(item)
+			deletedDirectoryItems.append(item)
 			try:
 				if item.is_dir():
 					print(f"{'  '*self._host.level}  - Deleting directory '{item}'")
@@ -87,7 +88,8 @@ class PurgeDirectories(Step):
 					# item.unlink()
 			except OSError as ex:
 				raise CommonException("Error while deleting '{0!s}'.".format(item)) from ex
-		else:
+
+		if len(deletedDirectoryItems) == 0:
 			print(f"{'  '*self._host.level}  - Working directory '{workingDirectory}' is already clean.")
 
 
@@ -173,7 +175,7 @@ class PrepareEnvironment(Step):
 		step.Initialize()
 		step.Run()
 
-		self._cdStep.Input = self._output # step.Output
+		self._cdStep.Input = step._output # step.Output
 		self._cdStep.Initialize()
 		self._cdStep.Run()
 
