@@ -30,6 +30,7 @@
 #
 """Execution of EDA tools in a workflow."""
 from enum import Enum
+from time import time_ns
 from typing import List, Optional as Nullable, Dict, Any, Type, TypeVar, Generic, Union, Iterator, Tuple
 
 import colorama
@@ -38,21 +39,31 @@ from pyTooling.Decorators import export
 
 @export
 class Timer:
+	_name: Nullable[str]
 	_start: int
-	_end: int
+	_stop: int
+	_delay: float
 
-	def __init__(self):
-		pass
+	def __init__(self, name: str = None):
+		self._name = name
 
-	def Start(self):
-		pass
+	def Start(self) -> "Timer":
+		self._start = time_ns()
+		return self
 
-	def Stop(self):
-		pass
+	def Stop(self) -> float:
+		stop = time_ns()
+		self._stop = stop
+		self._delay = stop - self._start
+		return self._delay / 1.0e9
 
 	@property
-	def Duration(self):
-		return None
+	def DurationInMSec(self) -> float:
+		return self._delay / 1.0e6
+
+	@property
+	def DurationInSec(self) -> float:
+		return self._delay / 1.0e9
 
 
 T = TypeVar("T")
@@ -122,9 +133,6 @@ class ExchangeObject:
 				else:
 					raise Exception()
 
-			# if input._step is not None:
-			# 	self._dict[input._step._name] = input
-
 	def __iter__(self) -> Iterator[Tuple[str, Union[Parameter, "ExchangeObject"]]]:
 		return iter(self._dict.items())
 
@@ -147,6 +155,14 @@ class ExchangeObject:
 	@property
 	def Input(self) -> "ExchangeObject":
 		return self._input
+
+	@property
+	def PreviousStep(self) -> "Step":
+		return self._previousStep
+
+	@property
+	def PreviousStepInput(self) -> "ExchangeObject":
+		return self._previousStepInput
 
 	@property
 	def Stream(self):
@@ -249,20 +265,11 @@ class Step(Base):
 		self._nextStep = value
 
 	def Run(self):
-		print(f"{'  '*self._host.level}{colorama.Fore.LIGHTCYAN_EX}Executing step '{self._name}' ...{colorama.Fore.RESET}")
-		for key,value in self._input:
-			print(f"{'  '*self._host.level}  > {(key + ':'):24} {value}")
-		print(f"{'  ' * self._host.level}  {'-'*120}")
-
 		self._RunEntering()
 		self._RunEnteringConsoleMessage()
 		self._Run()
 		self._RunLeavingConsoleMessage()
 		self._RunLeaving()
-
-		print(f"{'  ' * self._host.level}  {'-'*120}")
-		for key,value in self._output:
-			print(f"{'  '*self._host.level}  < {(key + ':'):24} {value}")
 
 	def _RunEntering(self):
 		self._timer.Start()

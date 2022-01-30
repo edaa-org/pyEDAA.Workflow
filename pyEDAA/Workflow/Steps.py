@@ -33,9 +33,27 @@ from os import chdir
 from pathlib import Path
 from typing import List
 
+import colorama
 from pyTooling.Decorators import export
 
-from pyEDAA.Workflow.Workflow import Step, ExchangeObject as _ExchangeObject, Host, Workflow, LocalParameter
+from pyEDAA.Workflow.Workflow import Step as _Step, ExchangeObject as _ExchangeObject, Host, Workflow, LocalParameter
+
+
+class Step(_Step):
+	def _RunEntering(self):
+		super()._RunEntering()
+
+		print(f"{'  '*self._host.level}{colorama.Fore.LIGHTCYAN_EX}Executing step '{self._name}' ...{colorama.Fore.RESET}")
+		for key,value in self._input:
+			print(f"{'  '*self._host.level}  > {(key + ':'):24} {value}")
+		print(f"{'  ' * self._host.level}  {'-'*120}")
+
+	def _RunLeaving(self):
+		print(f"{'  ' * self._host.level}  {'-'*120}")
+		for key,value in self._output:
+			print(f"{'  '*self._host.level}  < {(key + ':'):24} {value}")
+
+		super()._RunLeaving()
 
 
 @export
