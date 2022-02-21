@@ -1,0 +1,74 @@
+Installations:
+  SystemTools:
+    InstallationDirectory:     'C:\Program Files'
+
+    Git:
+      Version:                 '2.31'
+      InstallationDirectory:   '${..:InstallationDirectory}\Git'
+      BinaryDirectory:         '${InstallationDirectory}\bin'
+
+  OpenSource:
+    InstallationDirectory:     'C:\Tools'
+
+    GHDL:
+      InstallationDirectory:   '${..:InstallationDirectory}\GHDL'
+
+      '2.0.0.dev0-mingw32-mcode':
+        Version:               '2.0.0.dev0'
+        Platform:              'win32'
+        Runtime:               'mingw32'
+        Backend:               'mcode'
+        InstallationDirectory: '${..:InstallationDirectory}\${Version}-${Runtime}-${Backend}'
+        BinaryDirectory:       '${InstallationDirectory}\bin'
+#        ScriptDirectory:       '${InstallationDirectory}\scripts'
+
+      '2.0.0.dev0-mingw64-mcode':
+        Version:               '2.0.0.dev0'
+        Platform:              'win64'
+        Runtime:               'mingw64'
+        Backend:               'mcode'
+        InstallationDirectory: '${..:InstallationDirectory}\${Version}-${Runtime}-${Backend}'
+        BinaryDirectory:       '${InstallationDirectory}\bin'
+#        ScriptDirectory:       '${InstallationDirectory}\scripts'
+
+      '2.0.0.dev0-mingw64-llvm':
+        Version:               '2.0.0.dev0'
+        Platform:              'win64'
+        Runtime:               'mingw64'
+        Backend:               'llvm'
+        InstallationDirectory: '${..:InstallationDirectory}\${Version}-${Runtime}-${Backend}'
+        BinaryDirectory:       '${InstallationDirectory}\bin'
+#        ScriptDirectory:       '${InstallationDirectory}\scripts'
+
+      '2.0.0.dev0-ucrt64-mcode':
+        Version:               '2.0.0.dev0'
+        Platform:              'win64'
+        Runtime:               'ucrt64'
+        Backend:               'mcode'
+        InstallationDirectory: '${..:InstallationDirectory}\${Version}-${Runtime}-${Backend}'
+        BinaryDirectory:       '${InstallationDirectory}\bin'
+#        ScriptDirectory:       '${InstallationDirectory}\scripts'
+
+      '2.0.0.dev0-ucrt64-llvm':
+        Version:               '2.0.0.dev0'
+        Platform:              'win64'
+        Runtime:               'ucrt64'
+        Backend:               'llvm'
+        InstallationDirectory: '${..:InstallationDirectory}\${Version}-${Runtime}-${Backend}'
+        BinaryDirectory:       '${InstallationDirectory}\bin'
+#        ScriptDirectory:       '${InstallationDirectory}\scripts'
+
+    GTKWave:
+      InstallationDirectory:   '${..:InstallationDirectory}\GTKWave'
+
+      '3.3.100':
+        Version:               '3.3.100'
+        InstallationDirectory: '${..:InstallationDirectory}\${Version}'
+        BinaryDirectory:       '${InstallationDirectory}\bin'
+
+      '3.3.111':
+        Version:               '3.3.111'
+        InstallationDirectory: '${..:InstallationDirectory}\${Version}'
+        BinaryDirectory:       '${InstallationDirectory}\bin'
+
+Defaults:
