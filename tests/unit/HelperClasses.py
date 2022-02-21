@@ -37,7 +37,7 @@ class Timer(TestCase):
 		timer.Stop()
 		delay = timer.DurationInSec
 
-		self.assertLess(delay, 1.002)
+		self.assertLess(delay, 1.05)
 		self.assertLess(1.0, delay)
 
 	def test_StartStopShort(self):
@@ -45,7 +45,7 @@ class Timer(TestCase):
 		sleep(1)
 		delay = timer.Stop()
 
-		self.assertLess(delay, 1.002)
+		self.assertLess(delay, 1.05)
 		self.assertLess(1.0, delay)
 
 

@@ -93,7 +93,7 @@ class CreateProject(_CreateProject):
 
 
 class Simulation(TestCase):
-	def test_Steps(self):
+	def test_MainFlow(self):
 		print()
 
 		colorama.init()

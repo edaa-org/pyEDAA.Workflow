@@ -36,7 +36,7 @@ from typing import List
 import colorama
 from pyTooling.Decorators import export
 
-from pyEDAA.Workflow.Workflow import Step as _Step, ExchangeObject as _ExchangeObject, Host, Workflow, LocalParameter
+from . import Step as _Step, ExchangeObject as _ExchangeObject, Host, Workflow, LocalParameter
 
 
 class Step(_Step):
