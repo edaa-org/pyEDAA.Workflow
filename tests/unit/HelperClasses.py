@@ -1,7 +1,7 @@
 from time import sleep
 from unittest import TestCase
 
-from pyEDAA.Workflow.Workflow import Timer as _Timer, GlobalParameter, CopyParameter, LocalParameter, ExchangeObject as _ExchangeObject
+from pyEDAA.Workflow import Timer as _Timer, GlobalParameter, CopyParameter, LocalParameter, ExchangeObject as _ExchangeObject
 
 class Parameter(TestCase):
 	def test_GlobalParameter(self):

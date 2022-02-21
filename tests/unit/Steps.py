@@ -1,7 +1,7 @@
 from typing import List
 from unittest import TestCase
 
-from pyEDAA.Workflow.Workflow import Step
+from pyEDAA.Workflow import Step
 
 
 class TestStep(Step):

@@ -36,8 +36,8 @@ from unittest import TestCase
 
 import colorama
 
-from pyEDAA.Workflow.Steps    import CreateProject as _CreateProject, PrepareEnvironment, CreateLibrary, Analyze, Elaborate, Simulate, View
-from pyEDAA.Workflow.Workflow import Workflow, Host, ExchangeObject as _ExchangeObject
+from pyEDAA.Workflow        import Workflow, Host, ExchangeObject as _ExchangeObject
+from pyEDAA.Workflow.Steps  import CreateProject as _CreateProject, PrepareEnvironment, CreateLibrary, Analyze, Elaborate, Simulate, View
 
 
 @dataclass
