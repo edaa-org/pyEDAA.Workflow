@@ -13,6 +13,14 @@ Installations:
     GHDL:
       InstallationDirectory:   '${..:InstallationDirectory}\GHDL'
 
+      Default:
+        Version:               '2.0.0.dev0'
+        Platform:              'win32'
+        Runtime:               'mingw32'
+        Backend:               'mcode'
+        InstallationDirectory: '${..:${Version}-${Runtime}-${Backend}:InstallationDirectory}'
+        BinaryDirectory:       '${..:${Version}-${Runtime}-${Backend}:BinaryDirectory}'
+
       '2.0.0.dev0-mingw32-mcode':
         Version:               '2.0.0.dev0'
         Platform:              'win32'
@@ -61,6 +69,11 @@ Installations:
     GTKWave:
       InstallationDirectory:   '${..:InstallationDirectory}\GTKWave'
 
+      Default:
+        Version:               '3.3.111'
+        InstallationDirectory: '${..:${Version}:InstallationDirectory}'
+        BinaryDirectory:       '${..:${Version}:BinaryDirectory}'
+
       '3.3.100':
         Version:               '3.3.100'
         InstallationDirectory: '${..:InstallationDirectory}\${Version}'
@@ -72,3 +85,4 @@ Installations:
         BinaryDirectory:       '${InstallationDirectory}\bin'
 
 Defaults:
+  GHDL:

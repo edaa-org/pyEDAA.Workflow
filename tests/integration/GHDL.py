@@ -1,9 +1,11 @@
 from pathlib import Path
-from typing import List
+from typing import List, cast
 from unittest import TestCase
 
 from anytree import PostOrderIter
 
+from pyEDAA.ToolSetup.Interface import HDLSimulator
+from pyEDAA.ToolSetup.OpenSource.GHDL import GHDLInstance
 from pyVHDLModel import VHDLVersion
 from pyEDAA.CLITool.GHDL import GHDL
 from pyEDAA.ProjectModel import Project, FileSet, VHDLSourceFile, VHDLLibrary
@@ -33,9 +35,25 @@ class CreateAndAnalyzeLibrary(_CreateLibrary):
 		print(f"  Creating subdirectory for the library '{library.Name}' ...")
 
 	def _AnalyzeLibrary(self, library: VHDLLibrary) -> None:
+		hdlSimulator: HDLSimulator = self._input["HDLSimulator"]
+		analyzer: GHDL = cast(GHDL, hdlSimulator.GetVHDLAnalyzer())
+		analyzer[analyzer.FlagVHDlStandard] = VHDLVersion.VHDL2008
+		analyzer[analyzer.FlagLibrary] = library.Name
+		analyzer[analyzer.FlagRelaxed] = True
+		analyzer[analyzer.FlagExplicit] = True
+		analyzer[analyzer.FlagMultiByteComments] = True
+		analyzer[analyzer.FlagSynopsys] = True
+
+		analyzer[analyzer.OptionPath] = Path(".")
+
 		print(f"  Analyzing VHDL files into VHDL library '{library.Name}'")
 		for file in library.Files:
+			analyzer[analyzer.OptionPath].Value = file.ResolvedPath
+
+			arguments = analyzer.ToArgumentList()
+
 			print(f"    Analyzing VHDL file '{file}'")
+			print(f"      {arguments}")
 
 
 class Analyze(TestCase):
@@ -58,32 +76,9 @@ class Analyze(TestCase):
 
 		return project
 
-	def test_FromPATH(self):
-		pass
-
-	def test_ManualConfiguration(self):
-		installation = Installation()
-		vendor = Vendor("GHDL", Path(r"C:\Tools"), parent=installation)
-		tool = Tool("ghdl", parent=vendor)
-		version = "2.0.0.dev0-mingw32-mcode"
-		installationPath = vendor.InstallationDirectory / "GHDL" / version
-		binaryPath = installationPath / "bin"
-		ghdlInstallationInstance = ToolInstance(installationPath, binaryPath, version, parent=tool)
-
-		# Create a GHDL instance
-		ghdl = GHDL(binaryDirectoryPath=ghdlInstallationInstance.BinaryDirectory)
-
-		project = self._CreateProject()
-
+	def _CreateWorkflow(self, host) -> Workflow:
 		# Create a workflow
-		host = Host()
 		workflow = Workflow("ghdl", "Analyze source files", host)
-
-		input = ExchangeObject("Initial", None, None)
-		input["WorkingDirectory"] = Path("temp").resolve()
-		input["Project"] = project
-		input["VHDLLibrary"] = "test"
-
 		steps = [
 			#		CreateProject("GenerateProject", "generate project", host, workflow),
 			PrepareEnvironment("PrepareEnvironment", "prepare environment", host, workflow),
@@ -93,15 +88,61 @@ class Analyze(TestCase):
 			#	View("View", "view", host, workflow)
 		]
 		workflow.AppendSteps(steps)
+
+		return workflow
+
+	def test_FromPATH(self):
+		pass
+
+	def test_ManualConfiguration(self):
+		installation = Installation()
+		vendor = Vendor("OpenSource", Path(r"C:\Tools"), parent=installation)
+		tool = Tool("ghdl", parent=vendor)
+		version = "2.0.0.dev0-mingw32-mcode"
+		installationPath = vendor.InstallationDirectory / "GHDL" / version
+		binaryPath = installationPath / "bin"
+		ghdlInstallationInstance = ToolInstance(installationPath, binaryPath, version, parent=tool)
+
+		project = self._CreateProject()
+
+		host = Host()
+		workflow = self._CreateWorkflow(host)
+		input = ExchangeObject("Initial", None, None)
+		input["WorkingDirectory"] = Path("temp").resolve()
+		input["Project"] = project
+		input["VHDLLibrary"] = "test"
+		input["HDLSimulator"] = ghdlInstallationInstance
+
 		workflow.Input = input
 		workflow.Run()
 
-	def test_FromConfig(self):
+	def test_FromConfigByDefault(self):
 		installationsFile = Path(r"tests/integration/configuration.yml")
 		installations = Installations(installationsFile)
 		ghdlInstallations = installations["OpenSource"]["GHDL"]
-		ghdlInstallationInstance = ghdlInstallations["2.0.0.dev0-mingw32-mcode"]
+		ghdlInstallationInstance = ghdlInstallations.Default
 
-		# Create a GHDL instance
-		ghdl = GHDL(binaryDirectoryPath=Path(ghdlInstallationInstance.BinaryDirectory))
+		project = self._CreateProject()
 
+		host = Host()
+		workflow = self._CreateWorkflow(host)
+		input = ExchangeObject("Initial", None, None)
+		input["WorkingDirectory"] = Path("temp").resolve()
+		input["Project"] = project
+		input["VHDLLibrary"] = "test"
+		input["HDLSimulator"] = ghdlInstallationInstance
+		workflow.Input = input
+		workflow.Run()
+
+	def test_FromConfigByExplicitVariant(self):
+		installationsFile = Path(r"tests/integration/configuration.yml")
+		installations = Installations(installationsFile)
+		ghdlInstallations = installations["OpenSource"]["GHDL"]
+		ghdlInstallationInstance: GHDLInstance = ghdlInstallations["2.0.0.dev0-mingw32-mcode"]
+
+		project = self._CreateProject()
+
+		host = Host()
+		workflow = self._CreateWorkflow(host, project, ghdlInstallationInstance)
+		workflow.Input = input
+		workflow.Run()

@@ -44,14 +44,14 @@ class Step(_Step):
 		super()._RunEntering()
 
 		print(f"{'  '*self._host.level}{colorama.Fore.LIGHTCYAN_EX}Executing step '{self._name}' ...{colorama.Fore.RESET}")
-		for key,value in self._input:
-			print(f"{'  '*self._host.level}  > {(key + ':'):24} {value}")
+		# for key,value in self._input:
+		# 	print(f"{'  '*self._host.level}  > {(key + ':'):24} {value}")
 		print(f"{'  ' * self._host.level}  {'-'*120}")
 
 	def _RunLeaving(self):
 		print(f"{'  ' * self._host.level}  {'-'*120}")
-		for key,value in self._output:
-			print(f"{'  '*self._host.level}  < {(key + ':'):24} {value}")
+		# for key,value in self._output:
+		# 	print(f"{'  '*self._host.level}  < {(key + ':'):24} {value}")
 
 		super()._RunLeaving()
 

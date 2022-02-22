@@ -349,8 +349,8 @@ class Workflow(Base):
 		step = self._initialStep
 
 		print(f"{'  '*self._host.level}{colorama.Fore.CYAN}Running workflow '{self._name}' ...{colorama.Fore.RESET}")
-		for key,value in input:
-			print(f"{'  '*self._host.level}  > {(key + ':'):24} {value}")
+		# for key,value in input:
+		# 	print(f"{'  '*self._host.level}  > {(key + ':'):24} {value}")
 		print(f"{'  ' * self._host.level}  {'=' * 120}")
 
 		self._host.level += 1
@@ -372,8 +372,8 @@ class Workflow(Base):
 		self._output = input
 
 		print(f"{'  ' * self._host.level}  {'=' * 120}")
-		for key,value in input:
-			print(f"{'  '*self._host.level}  < {(key + ':'):24} {value}")
+		# for key,value in input:
+		# 	print(f"{'  '*self._host.level}  < {(key + ':'):24} {value}")
 
 	def __str__(self):
 		return self._name
