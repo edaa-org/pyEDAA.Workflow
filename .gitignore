@@ -28,3 +28,6 @@ doc/_theme/**/*.*
 
 # Git files
 !.git*
+
+# Temp data
+/temp
