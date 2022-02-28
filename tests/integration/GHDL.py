@@ -37,7 +37,7 @@ class CreateAndAnalyzeLibrary(_CreateLibrary):
 	def _AnalyzeLibrary(self, library: VHDLLibrary) -> None:
 		hdlSimulator: HDLSimulator = self._input["HDLSimulator"]
 		analyzer: GHDL = cast(GHDL, hdlSimulator.GetVHDLAnalyzer())
-		analyzer[analyzer.FlagVHDlStandard] = VHDLVersion.VHDL2008
+		analyzer[analyzer.FlagVHDLStandard] = VHDLVersion.VHDL2008
 		analyzer[analyzer.FlagLibrary] = library.Name
 		analyzer[analyzer.FlagRelaxed] = True
 		analyzer[analyzer.FlagExplicit] = True
@@ -73,7 +73,7 @@ class Elaborate(_Elaborate):
 	def _ElaborateLibrary(self, library: VHDLLibrary, toplevelName: str) -> None:
 		hdlSimulator: HDLSimulator = self._input["HDLSimulator"]
 		elaborator: GHDL = cast(GHDL, hdlSimulator.GetEloborator())
-		elaborator[elaborator.FlagVHDlStandard] = VHDLVersion.VHDL2008
+		elaborator[elaborator.FlagVHDLStandard] = VHDLVersion.VHDL2008
 		elaborator[elaborator.FlagLibrary] = library.Name
 		elaborator[elaborator.FlagRelaxed] = True
 		elaborator[elaborator.FlagExplicit] = True
@@ -103,7 +103,7 @@ class Simulate(_Simulate):
 	def _SimulateLibrary(self, library: VHDLLibrary, toplevelName: str) -> None:
 		hdlSimulator: HDLSimulator = self._input["HDLSimulator"]
 		simulator: GHDL = cast(GHDL, hdlSimulator.GetSimulator())
-		simulator[simulator.FlagVHDlStandard] = VHDLVersion.VHDL2008
+		simulator[simulator.FlagVHDLStandard] = VHDLVersion.VHDL2008
 		simulator[simulator.FlagLibrary] = library.Name
 		simulator[simulator.FlagRelaxed] = True
 		simulator[simulator.FlagExplicit] = True
