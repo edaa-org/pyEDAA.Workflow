@@ -105,7 +105,7 @@ class PurgeDirectories(Step):
 					print(f"{'  '*self._host.level}  - Deleting file '{item}'")
 					# item.unlink()
 			except OSError as ex:
-				raise CommonException("Error while deleting '{0!s}'.".format(item)) from ex
+				raise CommonException(f"Error while deleting '{item}'.") from ex
 
 		if len(deletedDirectoryItems) == 0:
 			print(f"{'  '*self._host.level}  - Working directory '{workingDirectory}' is already clean.")
