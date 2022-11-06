@@ -181,7 +181,7 @@ class Analyze(TestCase):
 		workflow.Run()
 
 	def test_FromConfigByDefault(self):
-		installationsFile = Path(r"tests/integration/configuration.yml")
+		installationsFile = Path(r"integration/configuration.yml")
 		installations = Installations(installationsFile)
 		ghdlInstallations = installations["OpenSource"]["GHDL"]
 		ghdlInstallationInstance = ghdlInstallations.Default
@@ -200,7 +200,7 @@ class Analyze(TestCase):
 		workflow.Run()
 
 	def test_FromConfigByExplicitVariant(self):
-		installationsFile = Path(r"tests/integration/configuration.yml")
+		installationsFile = Path(r"integration/configuration.yml")
 		installations = Installations(installationsFile)
 		ghdlInstallations = installations["OpenSource"]["GHDL"]
 		ghdlInstallationInstance: GHDLInstance = ghdlInstallations["2.0.0.dev0-mingw32-mcode"]
