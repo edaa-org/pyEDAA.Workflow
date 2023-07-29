@@ -1,0 +1,3 @@
+pyTooling[yaml]>=5.0.0
+pyTooling.TerminalUI>=1.5.7
+pyAttributes>=2.5.1

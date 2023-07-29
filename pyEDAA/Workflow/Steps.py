@@ -1,0 +1,355 @@
+# ==================================================================================================================== #
+#              _____ ____    _        _  __        __         _     __ _                                               #
+#  _ __  _   _| ____|  _ \  / \      / \ \ \      / /__  _ __| | __/ _| | _____      __                                #
+# | '_ \| | | |  _| | | | |/ _ \    / _ \ \ \ /\ / / _ \| '__| |/ / |_| |/ _ \ \ /\ / /                                #
+# | |_) | |_| | |___| |_| / ___ \  / ___ \ \ V  V / (_) | |  |   <|  _| | (_) \ V  V /                                 #
+# | .__/ \__, |_____|____/_/   \_\/_/   \_(_)_/\_/ \___/|_|  |_|\_\_| |_|\___/ \_/\_/                                  #
+# |_|    |___/                                                                                                         #
+# ==================================================================================================================== #
+# Authors:                                                                                                             #
+#   Patrick Lehmann                                                                                                    #
+#                                                                                                                      #
+# License:                                                                                                             #
+# ==================================================================================================================== #
+# Copyright 2014-2023 Patrick Lehmann - Bötzingen, Germany                                                             #
+#                                                                                                                      #
+# Licensed under the Apache License, Version 2.0 (the "License");                                                      #
+# you may not use this file except in compliance with the License.                                                     #
+# You may obtain a copy of the License at                                                                              #
+#                                                                                                                      #
+#   http://www.apache.org/licenses/LICENSE-2.0                                                                         #
+#                                                                                                                      #
+# Unless required by applicable law or agreed to in writing, software                                                  #
+# distributed under the License is distributed on an "AS IS" BASIS,                                                    #
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.                                             #
+# See the License for the specific language governing permissions and                                                  #
+# limitations under the License.                                                                                       #
+#                                                                                                                      #
+# SPDX-License-Identifier: Apache-2.0                                                                                  #
+# ==================================================================================================================== #
+#
+"""Execution of EDA tools in a workflow."""
+from os import chdir
+from pathlib import Path
+from typing import List
+
+import colorama
+from pyTooling.Decorators import export
+
+from . import Step as _Step, ExchangeObject as _ExchangeObject, Host, Workflow, LocalParameter
+
+
+class Step(_Step):
+	def _RunEntering(self):
+		super()._RunEntering()
+
+		print(f"{'  '*self._host.level}{colorama.Fore.LIGHTCYAN_EX}Executing step '{self._name}' ...{colorama.Fore.RESET}")
+		# for key,value in self._input:
+		# 	print(f"{'  '*self._host.level}  > {(key + ':'):24} {value}")
+		print(f"{'  ' * self._host.level}  {'-'*120}")
+
+	def _RunLeaving(self):
+		print(f"{'  ' * self._host.level}  {'-'*120}")
+		# for key,value in self._output:
+		# 	print(f"{'  '*self._host.level}  < {(key + ':'):24} {value}")
+
+		super()._RunLeaving()
+
+
+@export
+class ReadConfiguration(Step):
+	pass
+
+
+@export
+class CreateProject(Step):
+	pass
+
+
+@export
+class PurgeDirectories(Step):
+	class ExchangeObject(_ExchangeObject):
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
+
+		def __init__(self, name: str, step: "PurgeDirectories", input: _ExchangeObject):
+			super().__init__(name, step, input)
+
+			self._deletedDirectoryItems = []
+			self["DeletedDirectoryItems"] = LocalParameter(self._deletedDirectoryItems)
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+		@property
+		def DeletedDirectoryItems(self) -> List[Path]:
+			return self._deletedDirectoryItems
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
+
+	def _RunEnteringConsoleMessage(self) -> None:
+		pass # self.LogDebug(f"Purging temporary directory: {self.Directories.Working}")
+
+	def _Run(self) -> None:
+		workingDirectory: Path = self._input["WorkingDirectory"]
+		deletedDirectoryItems = self._output["DeletedDirectoryItems"]
+		for item in workingDirectory.iterdir():
+			deletedDirectoryItems.append(item)
+			try:
+				if item.is_dir():
+					print(f"{'  '*self._host.level}  - Deleting directory '{item}'")
+					# shutil.rmtree(str(item))
+				elif item.is_file():
+					print(f"{'  '*self._host.level}  - Deleting file '{item}'")
+					# item.unlink()
+			except OSError as ex:
+				raise CommonException(f"Error while deleting '{item}'.") from ex
+
+		if len(deletedDirectoryItems) == 0:
+			print(f"{'  '*self._host.level}  - Working directory '{workingDirectory}' is already clean.")
+
+
+@export
+class CreateDirectory(Step):
+	def _PrepareOutput(self) -> None:
+		self._output = self._input
+
+	def _RunEnteringConsoleMessage(self) -> None:
+		pass # self.LogDebug("Creating temporary directory: {0!s}".format(self.Directories.Working))
+
+	def _Run(self) -> None:
+		workingDirectory: Path = self._input["WorkingDirectory"]
+		try:
+			workingDirectory.mkdir(parents=True)
+			print(f"{'  '*self._host.level}  - Creating working directory '{workingDirectory}'.")
+		except OSError as ex:
+			raise CommonException(f"Error while creating '{self.Directories.Working}'.") from ex
+
+
+@export
+class ChangeDirectory(Step):
+	def _PrepareOutput(self) -> None:
+		self._output = self._input
+
+	def _RunEnteringConsoleMessage(self) -> None:
+		pass # self.LogVerbose("Changing working directory to temporary directory.")
+
+	def _Run(self) -> None:
+		"""Change working directory to temporary path 'temp/<tool>'."""
+		# self.LogDebug(f"cd \"{self.Directories.Working}\"")
+		workingDirectory: Path = self._input["WorkingDirectory"]
+		print(f"{'  '*self._host.level}  - Changing working directory to '{workingDirectory}'.")
+		try:
+			chdir(workingDirectory)
+		except OSError as ex:
+			raise CommonException("Error while changing to '{0!s}'.".format(self.Directories.Working)) from ex
+
+
+@export
+class PrepareEnvironment(Step):
+	_purgeStep: PurgeDirectories
+	_createStep: CreateDirectory
+	_cdStep: ChangeDirectory
+
+	class ExchangeObject(_ExchangeObject):
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
+
+		def __init__(self, name: str, step: "PrepareEnvironment", input: _ExchangeObject):
+			super().__init__(name, step, input)
+
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def __init__(self, name: str, description: str, host: "Host", workflow: "Workflow" = None, previousStep: "Step" = None):
+		super().__init__(name, description, host, workflow, previousStep)
+
+		self._purgeStep = PurgeDirectories("PurgeDirectory", f"{name} - purge directory", host, self)
+		self._createStep = CreateDirectory("CreateDirectory", f"{name} - create directory", host, self)
+		self._cdStep = ChangeDirectory("ChangeDirectory", f"{name} - change directory", host, self)
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
+
+	def _RunEnteringConsoleMessage(self) -> None:
+		pass #self.LogVerbose("Creating a fresh temporary directory.")
+
+	def _Run(self) -> None:
+		self._host.level += 1
+
+		if self._input["WorkingDirectory"].exists():
+			step = self._purgeStep
+		else:
+			step = self._createStep
+
+		step.Input = self._input
+		step.Initialize()
+		step.Run()
+
+		self._cdStep.Input = step._output # step.Output
+		self._cdStep.Initialize()
+		self._cdStep.Run()
+
+		self._host.level -= 1
+
+		self._output = self._cdStep.Output
+
+
+@export
+class CreateLibrary(Step):
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
+
+		def __init__(self, name: str, step: "CreateLibrary", input: _ExchangeObject):
+			super().__init__(name, step, input)
+			self._input = input
+
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
+
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Creating Library: '??????'")
+
+
+@export
+class MapLibrary(Step):
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
+
+		def __init__(self, name: str, step: "MapLibrary", input: _ExchangeObject):
+			super().__init__(name, step, input)
+			self._input = input
+
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
+
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Mapping Library: '??????'")
+
+@export
+class Analyze(Step):
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
+
+		def __init__(self, name: str, step: "Analyze", input: _ExchangeObject):
+			super().__init__(name, step, input)
+			self._input = input
+
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
+
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Analyzing file: '??????'")
+
+@export
+class Elaborate(Step):
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
+
+		def __init__(self, name: str, step: "Elaborate", input: _ExchangeObject):
+			super().__init__(name, step, input)
+			self._input = input
+
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
+
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Elaborating top-level: '??????'")
+
+@export
+class Simulate(Step):
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
+
+		def __init__(self, name: str, step: "Simulate", input: _ExchangeObject):
+			super().__init__(name, step, input)
+			self._input = input
+
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
+
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Simulating top-level: '??????'")
+
+
+@export
+class View(Step):
+	class ExchangeObject(_ExchangeObject):
+		_input: _ExchangeObject
+		_workingDirectory: Path
+		_deletedDirectoryItems: List[Path]
+
+		def __init__(self, name: str, step: "View", input: _ExchangeObject):
+			super().__init__(name, step, input)
+			self._input = input
+
+		@property
+		def Input(self) -> _ExchangeObject:
+			return self._input
+
+		@property
+		def WorkingDirectory(self) -> Path:
+			return self._workingDirectory
+
+	def _PrepareOutput(self) -> None:
+		self._output = self.ExchangeObject(self.__class__.__name__, self, self._input)
+
+	def _Run(self):
+		print(f"{'  ' * self._host.level}  - Viewing waveform: '??????'")
