@@ -30,6 +30,7 @@
 #
 """Package installer for 'Execution of EDA tools in a workflow'."""
 from pathlib             import Path
+from setuptools          import setup
 from pyTooling.Packaging import DescribePythonPackageHostedOnGitHub
 
 gitHubNamespace =        "edaa-org"
@@ -37,9 +38,11 @@ packageName =            "pyEDAA.Workflow"
 packageDirectory =       packageName.replace(".", "/")
 packageInformationFile = Path(f"{packageDirectory}/__init__.py")
 
-DescribePythonPackageHostedOnGitHub(
-	packageName=packageName,
-	description="Execution of EDA tools in a workflow.",
-	gitHubNamespace=gitHubNamespace,
-	sourceFileWithVersion=packageInformationFile,
+setup(
+	**DescribePythonPackageHostedOnGitHub(
+		packageName=packageName,
+		description="Execution of EDA tools in a workflow.",
+		gitHubNamespace=gitHubNamespace,
+		sourceFileWithVersion=packageInformationFile,
+	)
 )
